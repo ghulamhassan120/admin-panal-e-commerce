@@ -19,7 +19,7 @@ export default function GrowthChart() {
   const [growthData, setGrowthData] = useState([]);
   const [popularStocks, setPopularStocks] = useState([]);
   const [totalGrowth, setTotalGrowth] = useState(0);
-  const [stockChartData, setStockChartData] = useState([]);
+ const [stockChartData, setStockChartData] = useState<{ day: string; val: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Backend se dynamic growth data aur stocks fetch karna
@@ -99,7 +99,7 @@ export default function GrowthChart() {
                 <p className="text-xs text-gray-400">High Revenue</p>
               </div>
               <span className="font-extrabold text-white text-base">
-                ${stockChartData.length > 0 ? stockChartData[stockChartData.length - 1]?.val * 20 : 0}.00
+                ${(stockChartData[stockChartData.length - 1]?.val ?? 0) * 20}.00
               </span>
             </div>
             <div className="w-full h-16">
