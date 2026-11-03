@@ -1,270 +1,192 @@
-'use client';
+"use client";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'sonner';
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Plus, Home, ShoppingBag, CreditCard } from 'lucide-react';
+// TypeScript Interfaces for Order Data
+interface ShippingAddress {
+  fullName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  postalCode?: string;
+}
 
-export default function CreateOrderPage() {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    userName: '',
-    email: '',
-    countryCode: 'US',
-    phone: '',
-    address: '',
-    pinCode: '',
-    city: '',
-    country: '',
-    paymentMethod: '',
-  });
+interface OrderItem {
+  productId: string;
+  quantity: number;
+  size?: string;
+  color?: string;
+  price?: number;
+}
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+interface Order {
+  _id: string;
+  userId: {
+    _id: string;
+    name?: string;
+    email?: string;
+  } | string;
+  items: OrderItem[];
+  shippingAddress: ShippingAddress;
+  paymentMethod: string;
+  totalAmount: number;
+  status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  createdAt: string;
+}
+
+export default function AdminOrders() {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // Orders fetch karne ka function
+  const fetchOrders = async () => {
+    try {
+      const response = await axios.get<Order[]>('https://e-cormarce-8qgn.vercel.app/api/orders/admin/all');
+      setOrders(response.data);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  // Order status update karne ka function
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      await axios.put(`https://e-cormarce-8qgn.vercel.app/api/orders/admin/status/${orderId}`, {
+        status: newStatus
+      });
+      toast.success('Order status updated successfully!');
+      fetchOrders();
+    } catch (err) {
+      console.error("Error updating status:", err);
+      toast.error('Failed to update status.');
+    }
+  };
+
+  // Search filter
+  const filteredOrders = orders.filter(order => 
+    order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.shippingAddress?.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.shippingAddress?.city?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (loading) return <div className="text-center py-20 text-gray-400 bg-[#0f172a] min-h-screen">Loading orders...</div>;
+
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="p-6 space-y-6 bg-[#0f1117] min-h-screen text-gray-200 w-full"
-    >
-      {/* Top Breadcrumb & Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="min-h-screen bg-[#0f172a] text-gray-200 p-6 lg:p-10 font-sans">
+      
+      {/* Top Breadcrumb & Title */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white mb-1">Create</h1>
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            <Home className="w-3.5 h-3.5" />
-            <span>&gt;</span>
-            <span>Order</span>
-            <span>&gt;</span>
-            <span className="text-indigo-400">Create</span>
-          </div>
+          <h1 className="text-2xl font-bold text-white tracking-wide">Orders Managment</h1>
         </div>
       </div>
 
-      {/* Main Container Card */}
-      <div className="bg-[#1a1c23] border border-gray-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-8">
+      {/* Main Container */}
+      <div className="bg-[#1e293b] border border-gray-800 rounded-2xl shadow-xl overflow-hidden p-6">
         
-        {/* Section: Select Product */}
-        <div>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Select Product</h3>
-            <div className="flex items-center gap-3">
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute left-3.5 top-2.5 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search Product"
-                  className="w-full bg-[#252836] text-gray-200 pl-10 pr-4 py-2 rounded-xl text-xs border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/30 whitespace-nowrap"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Add Product</span>
-              </motion.button>
-            </div>
-          </div>
-
-          {/* Product Table Header */}
-          <div className="border border-gray-800 rounded-2xl overflow-hidden bg-[#252836]/30">
-            <div className="grid grid-cols-5 p-4 text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-800">
-              <div>Product</div>
-              <div>ID</div>
-              <div>Price</div>
-              <div>Quantity</div>
-              <div className="text-right">Action</div>
-            </div>
-
-            {/* Empty Product State */}
-            <div className="py-12 flex flex-col items-center justify-center text-center px-4">
-              <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-4 border border-blue-500/20 shadow-inner">
-                <ShoppingBag className="w-8 h-8" />
-              </div>
-              <h4 className="text-base font-bold text-white mb-1">No products selected!</h4>
-              <p className="text-xs text-gray-400">No products selected. Use the search bar to find and add items, then continue.</p>
-            </div>
-
-            {/* Total Footer */}
-            <div className="p-4 border-t border-gray-800 flex items-center justify-end gap-4 text-sm font-bold bg-[#1a1c23]">
-              <span className="text-gray-400">Total :</span>
-              <span className="text-indigo-400 text-base">$0.00</span>
-            </div>
-          </div>
-        </div>
-
-        <hr className="border-gray-800/80" />
-
-        {/* Section: Customer Details */}
-        <div>
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Customer Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">First Name <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                name="firstName" 
-                placeholder="Enter first name" 
-                value={formData.firstName} 
-                onChange={handleChange}
-                className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">User Name <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                name="userName" 
-                placeholder="Enter user name" 
-                value={formData.userName} 
-                onChange={handleChange}
-                className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">Email <span className="text-red-500">*</span></label>
-              <input 
-                type="email" 
-                name="email" 
-                placeholder="Enter your email" 
-                value={formData.email} 
-                onChange={handleChange}
-                className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">Phone Number <span className="text-red-500">*</span></label>
-              <div className="flex">
-                <select 
-                  name="countryCode" 
-                  value={formData.countryCode} 
-                  onChange={handleChange}
-                  className="bg-[#252836] text-gray-200 px-3 py-3 rounded-l-xl text-sm border border-r-0 border-gray-800 focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="US">US</option>
-                  <option value="UK">UK</option>
-                  <option value="CA">CA</option>
-                </select>
-                <input 
-                  type="text" 
-                  name="phone" 
-                  placeholder="1231fx xxxxx" 
-                  value={formData.phone} 
-                  onChange={handleChange}
-                  className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-r-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <hr className="border-gray-800/80" />
-
-        {/* Section: Address Information */}
-        <div>
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Address Information</h3>
-          <div className="mb-4">
-            <label className="block text-xs font-semibold text-gray-300 mb-2">Address <span className="text-red-500">*</span></label>
+        {/* Search Bar & Action Buttons */}
+        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+          <div className="relative w-full md:w-80">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+              🔍
+            </span>
             <input 
               type="text" 
-              name="address" 
-              placeholder="Enter your address" 
-              value={formData.address} 
-              onChange={handleChange}
-              className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
+              placeholder="Search by ID, Name, City..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#0f172a] border border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-200 outline-none focus:border-blue-500 transition-all"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">Pin Code <span className="text-red-500">*</span></label>
-              <input 
-                type="text" 
-                name="pinCode" 
-                placeholder="123456" 
-                value={formData.pinCode} 
-                onChange={handleChange}
-                className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">City <span className="text-red-500">*</span></label>
-              <select 
-                name="city" 
-                value={formData.city} 
-                onChange={handleChange}
-                className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-              >
-                <option value="">Select City</option>
-                <option value="New York">New York</option>
-                <option value="Los Angeles">Los Angeles</option>
-                <option value="Toronto">Toronto</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-300 mb-2">Country <span className="text-red-500">*</span></label>
-              <select 
-                name="country" 
-                value={formData.country} 
-                onChange={handleChange}
-                className="w-full bg-[#252836] text-gray-200 px-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors"
-              >
-                <option value="">Select Country</option>
-                <option value="United States">United States</option>
-                <option value="Canada">Canada</option>
-                <option value="United Kingdom">United Kingdom</option>
-              </select>
-            </div>
+          <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+            <button className="flex items-center gap-2 bg-[#0f172a] border border-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer text-gray-300">
+              📥 Download
+            </button>
+        
           </div>
         </div>
 
-        <hr className="border-gray-800/80" />
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wider">
+                <th className="p-4 w-10">
+                  <input type="checkbox" className="rounded bg-[#0f172a] border-gray-700 cursor-pointer" />
+                </th>
+                <th className="p-4">ID</th>
+                <th className="p-4">Customer Name</th>
+                <th className="p-4">Branch / City</th>
+                <th className="p-4">Payment Type</th>
+                <th className="p-4">Quantity</th>
+                <th className="p-4">Order Date</th>
+                <th className="p-4">Status</th>
+                <th className="p-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/60 text-sm">
+              {filteredOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="p-8 text-center text-gray-500">No orders found.</td>
+                </tr>
+              ) : (
+                filteredOrders.map((order) => {
+                  const totalQty = order.items ? order.items.reduce((sum, item) => sum + item.quantity, 0) : 1;
+                  const orderDate = new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-        {/* Section: Payment */}
-        <div>
-          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Payment</h3>
-          <div className="relative">
-            <CreditCard className="absolute left-3.5 top-3.5 w-4 h-4 text-gray-400" />
-            <select 
-              name="paymentMethod" 
-              value={formData.paymentMethod} 
-              onChange={handleChange}
-              className="w-full bg-[#252836] text-gray-200 pl-10 pr-4 py-3 rounded-xl text-sm border border-gray-800 focus:outline-none focus:border-indigo-500 transition-colors appearance-none"
-            >
-              <option value="">Select Payment Method</option>
-              <option value="Card">Credit/Debit Card</option>
-              <option value="UPI">UPI Payment</option>
-              <option value="COD">Cash on Delivery (COD)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Form Actions Footer */}
-        <div className="flex items-center justify-end gap-4 pt-4">
-          <button 
-            type="button"
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-500/10 transition-colors"
-          >
-            Discard
-          </button>
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/30"
-          >
-            Add
-          </motion.button>
+                  return (
+                    <tr key={order._id} className="hover:bg-[#162032] transition-colors group">
+                      <td className="p-4">
+                        <input type="checkbox" className="rounded bg-[#0f172a] border-gray-700 cursor-pointer" />
+                      </td>
+                      <td className="p-4 font-mono text-xs text-blue-400 font-medium">#{order._id.slice(-6)}</td>
+                      <td className="p-4 font-semibold text-gray-200">{order.shippingAddress?.fullName}</td>
+                      <td className="p-4 text-gray-300">{order.shippingAddress?.city || 'N/A'}</td>
+                      <td className="p-4 text-gray-300">{order.paymentMethod}</td>
+                      <td className="p-4 text-gray-300">{totalQty}</td>
+                      <td className="p-4 text-gray-400 text-xs">{orderDate}</td>
+                      <td className="p-4">
+                        <select 
+                          value={order.status}
+                          onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold outline-none cursor-pointer border border-transparent ${
+                            order.status === 'Pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                            order.status === 'Delivered' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                            order.status === 'Cancelled' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                            'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                          }`}
+                        >
+                          <option value="Pending" className="bg-[#1e293b] text-gray-200">Pending</option>
+                          <option value="Processing" className="bg-[#1e293b] text-gray-200">Processing</option>
+                          <option value="Shipped" className="bg-[#1e293b] text-gray-200">Shipped</option>
+                          <option value="Delivered" className="bg-[#1e293b] text-gray-200">Delivered</option>
+                          <option value="Cancelled" className="bg-[#1e293b] text-gray-200">Cancelled</option>
+                        </select>
+                      </td>
+                      <td className="p-4 text-right">
+                        <button className="text-gray-400 hover:text-white px-2 py-1 rounded transition-colors font-bold tracking-wider">
+                          ⋮
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
 
       </div>
-    </motion.div>
+    </div>
   );
 }

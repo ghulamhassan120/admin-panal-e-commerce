@@ -1,21 +1,37 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
-
-const stockChartData = [
-  { day: '1', val: 20 },
-  { day: '2', val: 40 },
-  { day: '3', val: 30 },
-  { day: '4', val: 70 },
-  { day: '5', val: 50 },
-  { day: '6', val: 60 },
-  { day: '7', val: 85 },
-];
+import axios from 'axios';
 
 export default function OrderCard() {
+  const [timeframe, setTimeframe] = useState<'month' | 'year'>('year');
+  const [totalOrders, setTotalOrders] = useState<number>(0);
+  const [chartData, setChartData] = useState<{ day: string; val: number }[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  // Backend se timeframe ke mutabiq orders aur chart data fetch karna
+  useEffect(() => {
+    const fetchOrderStats = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`https://e-cormarce-8qgn.vercel.app/api/admin/order-stats?timeframe=${timeframe}`);
+        
+        // Misal ke taur par response mein { totalOrders: 961, chartData: [...] } aa raha ho
+        setTotalOrders(response.data.totalOrders || 0);
+        setChartData(response.data.chartData || []);
+      } catch (err) {
+        console.error("Error fetching order stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrderStats();
+  }, [timeframe]);
+
   return (
     <motion.div 
       whileHover={{ y: -4 }}
@@ -25,19 +41,40 @@ export default function OrderCard() {
         <div className="p-3 bg-blue-500/20 rounded-2xl">
           <ShoppingBag className="w-6 h-6 text-blue-400" />
         </div>
+        
+        {/* Month / Year Toggle Buttons */}
         <div className="flex bg-[#252836] p-1 rounded-xl border border-gray-800 text-xs font-semibold">
-          <button className="px-3 py-1 rounded-lg text-gray-400 hover:text-white transition-colors">Month</button>
-          <button className="px-3 py-1 rounded-lg bg-blue-600 text-white shadow">Year</button>
+          <button 
+            onClick={() => setTimeframe('month')}
+            className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+              timeframe === 'month' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Month
+          </button>
+          <button 
+            onClick={() => setTimeframe('year')}
+            className={`px-3 py-1 rounded-lg transition-colors cursor-pointer ${
+              timeframe === 'year' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Year
+          </button>
         </div>
       </div>
+
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-extrabold text-white mb-1">$961</h2>
-          <p className="text-sm text-gray-400 font-medium">Total Order</p>
+          <h2 className="text-3xl font-extrabold text-white mb-1">
+            ${loading ? "..." : totalOrders.toLocaleString()}
+          </h2>
+          <p className="text-sm text-gray-400 font-medium">Total Order ({timeframe === 'year' ? 'Yearly' : 'Monthly'})</p>
         </div>
+
+        {/* Dynamic Chart */}
         <div className="w-28 h-12">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={stockChartData}>
+            <AreaChart data={chartData.length > 0 ? chartData : [{ day: '1', val: 0 }]}>
               <defs>
                 <linearGradient id="orderGrad" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>

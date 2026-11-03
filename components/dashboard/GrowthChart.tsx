@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { MoreHorizontal, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { 
   ResponsiveContainer, 
@@ -12,41 +13,34 @@ import {
   AreaChart, 
   Area 
 } from 'recharts';
-
-const growthData = [
-  { month: 'Jan', investment: 40, loss: 30, profit: 20, maintenance: 15 },
-  { month: 'Feb', investment: 120, loss: 40, profit: 80, maintenance: 45 },
-  { month: 'Mar', investment: 50, loss: 20, profit: 60, maintenance: 30 },
-  { month: 'Apr', investment: 40, loss: 20, profit: 30, maintenance: 15 },
-  { month: 'May', investment: 40, loss: 35, profit: 40, maintenance: 25 },
-  { month: 'Jun', investment: 80, loss: 40, profit: 100, maintenance: 120 },
-  { month: 'Jul', investment: 70, loss: 40, profit: 60, maintenance: 45 },
-  { month: 'Aug', investment: 15, loss: 10, profit: 20, maintenance: 10 },
-  { month: 'Sep', investment: 40, loss: 20, profit: 30, maintenance: 25 },
-  { month: 'Oct', investment: 50, loss: 40, profit: 60, maintenance: 25 },
-  { month: 'Nov', investment: 25, loss: 20, profit: 70, maintenance: 105 },
-  { month: 'Dec', investment: 75, loss: 40, profit: 30, maintenance: 15 },
-];
-
-const stockChartData = [
-  { day: '1', val: 20 },
-  { day: '2', val: 40 },
-  { day: '3', val: 30 },
-  { day: '4', val: 70 },
-  { day: '5', val: 50 },
-  { day: '6', val: 60 },
-  { day: '7', val: 85 },
-];
-
-const popularStocks = [
-  { name: 'Bajaj Finserv', price: '$1839.00', profit: '10% Profit', isPositive: true },
-  { name: 'TTML', price: '$100.00', profit: '10% Loss', isPositive: false },
-  { name: 'Reliance', price: '$200.00', profit: '10% Profit', isPositive: true },
-  { name: 'TTML', price: '$189.00', profit: '10% Loss', isPositive: false },
-  { name: 'Stolon', price: '$189.00', profit: '10% Loss', isPositive: false },
-];
+import axios from 'axios';
 
 export default function GrowthChart() {
+  const [growthData, setGrowthData] = useState([]);
+  const [popularStocks, setPopularStocks] = useState([]);
+  const [totalGrowth, setTotalGrowth] = useState(0);
+  const [stockChartData, setStockChartData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Backend se dynamic growth data aur stocks fetch karna
+  useEffect(() => {
+    const fetchGrowthData = async () => {
+      try {
+        const response = await axios.get('https://e-cormarce-8qgn.vercel.app/api/admin/growth-stats');
+        setGrowthData(response.data.growthData || []);
+        setPopularStocks(response.data.popularStocks || []);
+        setTotalGrowth(response.data.totalGrowth || 0);
+        setStockChartData(response.data.stockChartData || []);
+      } catch (err) {
+        console.error("Error fetching growth stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGrowthData();
+  }, []);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Total Growth Bar Chart */}
@@ -54,13 +48,15 @@ export default function GrowthChart() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Total Growth</p>
-            <h2 className="text-2xl font-bold text-white">$2,324.00</h2>
+            <h2 className="text-2xl font-bold text-white">
+              ${loading ? "..." : totalGrowth.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </h2>
           </div>
           <div className="flex items-center gap-2">
             <div className="px-3 py-1.5 bg-[#252836] border border-gray-800 rounded-xl text-xs font-medium">
               <span>Today</span>
             </div>
-            <button className="p-2 bg-[#252836] border border-gray-800 rounded-xl hover:bg-gray-800 transition-colors">
+            <button className="p-2 bg-[#252836] border border-gray-800 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer">
               <MoreHorizontal className="w-4 h-4 text-gray-400" />
             </button>
           </div>
@@ -92,17 +88,19 @@ export default function GrowthChart() {
       <div className="bg-[#1a1c23] border border-gray-800 p-6 rounded-3xl shadow-xl flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-white text-base">Popular Stocks</h3>
+            <h3 className="font-bold text-white text-base">Popular Products / Stocks</h3>
             <MoreHorizontal className="w-5 h-5 text-gray-400 cursor-pointer" />
           </div>
 
           <div className="bg-gradient-to-br from-purple-950/60 via-[#252836] to-[#1a1c23] border border-purple-900/50 p-4 rounded-2xl mb-4 shadow-lg">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <h4 className="font-bold text-purple-300 text-sm">Bajaj Finery</h4>
-                <p className="text-xs text-gray-400">10% Profit</p>
+                <h4 className="font-bold text-purple-300 text-sm">Top Performer</h4>
+                <p className="text-xs text-gray-400">High Revenue</p>
               </div>
-              <span className="font-extrabold text-white text-base">$1839.00</span>
+              <span className="font-extrabold text-white text-base">
+                ${stockChartData.length > 0 ? stockChartData[stockChartData.length - 1]?.val * 20 : 0}.00
+              </span>
             </div>
             <div className="w-full h-16">
               <ResponsiveContainer width="100%" height="100%">
@@ -120,7 +118,7 @@ export default function GrowthChart() {
           </div>
 
           <div className="space-y-3">
-            {popularStocks.map((stock, idx) => (
+            {popularStocks.map((stock: any, idx: number) => (
               <div key={idx} className="flex items-center justify-between py-2 border-b border-gray-800/50 last:border-none text-sm">
                 <div>
                   <h5 className="font-semibold text-gray-200">{stock.name}</h5>
@@ -140,7 +138,7 @@ export default function GrowthChart() {
         </div>
 
         <div className="mt-6 text-center">
-          <button className="text-indigo-400 hover:text-indigo-300 font-semibold text-sm transition-colors">
+          <button className="text-indigo-400 hover:text-indigo-300 font-semibold text-sm transition-colors cursor-pointer">
             View All &rarr;
           </button>
         </div>

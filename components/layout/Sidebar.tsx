@@ -11,7 +11,8 @@ import {
   UserCheck, 
   ShoppingCart, 
   ChevronDown, 
-  ChevronUp 
+  ChevronUp, 
+  Package
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -19,6 +20,7 @@ const iconMap: Record<string, React.ReactNode> = {
   Users: <Users className="w-5 h-5" />,
   Customer: <UserCheck className="w-5 h-5" />,
   Order: <ShoppingCart className="w-5 h-5" />,
+  Package: <Package className="w-5 h-5" />,
 };
 
 interface SidebarProps {

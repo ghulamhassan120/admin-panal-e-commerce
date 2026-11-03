@@ -19,21 +19,15 @@ export const menuItems: MenuItem[] = [
     path: '#',
     icon: 'Users',
     children: [
-      { title: 'Social Profile', path: '/users/social-profile' },
-      { title: 'Account Profile', path: '/users/account-profile' },
-      { title: 'Cards', path: '/users/cards' },
-      { title: 'List', path: '/users/list' }
+      { title: 'Account Profile', path: '/users/account-profile' }
     ]
   },
   {
-    title: 'Customer',
+    title: 'Products',
     path: '#',
-    icon: 'Customer',
+    icon: 'Package',
     children: [
-      { title: 'List', path: '/customer/list' },
-      { title: 'Create', path: '/customer/create' },
-      { title: 'Edit', path: '/customer/edit' },
-      { title: 'Details', path: '/customer/details' }
+      { title: 'Products', path: '/products' }
     ]
   },
   {
@@ -41,10 +35,7 @@ export const menuItems: MenuItem[] = [
     path: '#',
     icon: 'Order',
     children: [
-      { title: 'List', path: '/order/list' },
-      { title: 'Create', path: '/order/create' },
-      { title: 'Edit', path: '/order/edit' },
-      { title: 'Details', path: '/order/details' }
+      { title: 'Orders', path: '/order/create' },
     ]
   }
 ];
